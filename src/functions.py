@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.linear_model import ElasticNet, BayesianRidge
 from sklearn.svm import SVR
-from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.utils import resample
 
 
@@ -63,7 +63,8 @@ class ModelEvaluator:
         self.model_name = model_name
         self.metrics = {
             'RMSE': [],
-            'MAE': []
+            'MAE': [],
+            'R2': []
         }
         self.stats = None
         self.ci = 95
@@ -87,6 +88,7 @@ class ModelEvaluator:
             self.metrics['RMSE'].append(
                 np.sqrt(mean_squared_error(y_bs, y_pred)))
             self.metrics['MAE'].append(mean_absolute_error(y_bs, y_pred))
+            self.metrics['R2'].append(r2_score(y_bs, y_pred))
 
         self.stats = self.__compute_statistics()
 
@@ -105,6 +107,7 @@ class ModelEvaluator:
         }
 
     def generate_report(self):
+        """Generate a DataFrame report with all metrics (RMSE, MAE, R2)."""
         if not self.stats:
             raise ValueError("Run evaluate() first")
 
@@ -188,7 +191,7 @@ MODEL_COLORS = {
 }
 
 
-def compare_model_metrics(*evaluators, figsize=(15, 6)):
+def compare_model_metrics(*evaluators, figsize=(18, 6)):
     """
     Display side-by-side boxplots comparing models' metrics.
 
@@ -201,17 +204,19 @@ def compare_model_metrics(*evaluators, figsize=(15, 6)):
     # Prepare data and labels
     metrics = {
         'RMSE': [],
-        'MAE': []
+        'MAE': [],
+        'R2': []
     }
     labels = [e.model_name for e in evaluators]
 
     for evaluator in evaluators:
         metrics['RMSE'].append(evaluator.metrics['RMSE'])
         metrics['MAE'].append(evaluator.metrics['MAE'])
+        metrics['R2'].append(evaluator.metrics['R2'])
 
     # Create subplots
     for i, (metric_name, metric_values) in enumerate(metrics.items(), 1):
-        plt.subplot(1, 2, i)
+        plt.subplot(1, 3, i)
         boxes = plt.boxplot(
             metric_values,
             labels=labels,
@@ -225,7 +230,7 @@ def compare_model_metrics(*evaluators, figsize=(15, 6)):
             box.set_facecolor(MODEL_COLORS.get(label, 'gray'))
 
         plt.title(f'{metric_name} Comparison')
-        plt.ylabel('Error Value')
+        plt.ylabel('Score' if metric_name == 'R2' else 'Error Value')
         plt.grid(True, alpha=0.3)
 
     plt.tight_layout()

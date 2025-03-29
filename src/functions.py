@@ -179,3 +179,54 @@ class ModelIO:
         if suffix:
             parts.append(suffix)
         return self.models_dir / f"{'_'.join(parts)}.pkl"
+
+
+MODEL_COLORS = {
+    'ElasticNet': 'lightblue',
+    'SVR': 'lightgreen',
+    'BayesianRidge': 'lightyellow'
+}
+
+
+def compare_model_metrics(*evaluators, figsize=(15, 6)):
+    """
+    Display side-by-side boxplots comparing models' metrics.
+
+    Args:
+        *evaluators: ModelEvaluator instances to compare
+        figsize: Tuple specifying figure dimensions
+    """
+    plt.figure(figsize=figsize)
+
+    # Prepare data and labels
+    metrics = {
+        'RMSE': [],
+        'MAE': []
+    }
+    labels = [e.model_name for e in evaluators]
+
+    for evaluator in evaluators:
+        metrics['RMSE'].append(evaluator.metrics['RMSE'])
+        metrics['MAE'].append(evaluator.metrics['MAE'])
+
+    # Create subplots
+    for i, (metric_name, metric_values) in enumerate(metrics.items(), 1):
+        plt.subplot(1, 2, i)
+        boxes = plt.boxplot(
+            metric_values,
+            labels=labels,
+            patch_artist=True,
+            widths=0.6
+        )
+
+        # Apply colors
+        for box, label in zip(boxes['boxes'], labels):
+            # Default to gray if color not defined
+            box.set_facecolor(MODEL_COLORS.get(label, 'gray'))
+
+        plt.title(f'{metric_name} Comparison')
+        plt.ylabel('Error Value')
+        plt.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.show()

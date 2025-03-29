@@ -10,7 +10,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.utils import resample
 
 
-class BaselineBMIPredictor:
+class BMIPredictor:
     """
     A class to implement baseline BMI prediction models using metagenomic data.
     Only handles training with default parameters, assumes data is preprocessed.

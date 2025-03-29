@@ -69,7 +69,7 @@ class ModelEvaluator:
         self.stats = None
         self.ci = 95
 
-    def evaluate(self, X, y, n_iterations=200, random_state=42):
+    def evaluate(self, X, y, n_iterations=500, random_state=42):
         """
         Run bootstrapped evaluation (stores results internally).
 

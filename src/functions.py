@@ -72,7 +72,7 @@ class ModelIO:
             model_name (str): Name of the model (e.g., 'ElasticNet')
             suffix (str): Optional suffix for filename (e.g., 'baseline', 'tuned')
         """
-        filename = self._generate_filename(model_name, suffix)
+        filename = self.__generate_filename(model_name, suffix)
         joblib.dump(model, filename)
 
     def load_model(self, model_name, suffix=''):
@@ -86,10 +86,10 @@ class ModelIO:
         Returns:
             The loaded model object
         """
-        filename = self._generate_filename(model_name, suffix)
+        filename = self.__generate_filename(model_name, suffix)
         return joblib.load(filename)
 
-    def _generate_filename(self, model_name, suffix):
+    def __generate_filename(self, model_name, suffix):
         """
         Generate consistent filenames for models.
 

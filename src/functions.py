@@ -1,8 +1,13 @@
 from pathlib import Path
-from sklearn.linear_model import ElasticNet, BayesianRidge
-from sklearn.svm import SVR
 import joblib
 import os
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.linear_model import ElasticNet, BayesianRidge
+from sklearn.svm import SVR
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.utils import resample
 
 
 class BaselineBMIPredictor:
@@ -43,6 +48,76 @@ class BaselineBMIPredictor:
             trained_models[model_name] = model
 
         return trained_models
+
+
+class ModelEvaluator:
+    """Evaluates a single model with bootstrapped metrics."""
+
+    def __init__(self, model, model_name=""):
+        """
+        Args:
+            model: Pre-trained model object
+            model_name (str): Identifier for reports
+        """
+        self.model = model
+        self.model_name = model_name
+        self.metrics = {
+            'RMSE': [],
+            'MAE': []
+        }
+        self.stats = None
+        self.ci = 95
+
+    def evaluate(self, X, y, n_iterations=200, random_state=42):
+        """
+        Run bootstrapped evaluation (stores results internally).
+
+        Args:
+            X: Evaluation features
+            y: True labels
+            n_iterations: Bootstrap samples (200-1000 recommended)
+            ci: Confidence interval width (default 95%)
+            random_state: Reproducibility seed
+        """
+        np.random.seed(random_state)
+        for _ in range(n_iterations):
+            X_bs, y_bs = resample(X, y)
+            y_pred = self.model.predict(X_bs)
+
+            self.metrics['RMSE'].append(
+                np.sqrt(mean_squared_error(y_bs, y_pred)))
+            self.metrics['MAE'].append(mean_absolute_error(y_bs, y_pred))
+
+        self.stats = self.__compute_statistics()
+
+    def __compute_statistics(self):
+        """Calculate and store statistics."""
+        ci_low = (100 - self.ci) / 2
+        return {
+            metric: {
+                'mean': np.mean(values),
+                'median': np.median(values),
+                f'CI_{self.ci}': (np.percentile(values, ci_low),
+                                  np.percentile(values, 100 - ci_low)),
+                'std': np.std(values)
+            }
+            for metric, values in self.metrics.items()
+        }
+
+    def generate_report(self):
+        if not self.stats:
+            raise ValueError("Run evaluate() first")
+
+        report_df = pd.DataFrame.from_dict(self.stats, orient='index')
+
+        report_df[['CI_low', 'CI_high']] = pd.DataFrame(
+            report_df[f'CI_{95}'].tolist(),
+            index=report_df.index
+        )
+
+        report_df = report_df.round(3)
+
+        return report_df[['mean', 'std', 'median', 'CI_low', 'CI_high']]
 
 
 class ModelIO:

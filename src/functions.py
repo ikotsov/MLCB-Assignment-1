@@ -17,18 +17,18 @@ class BMIPredictor:
     Only handles training with default parameters, assumes data is preprocessed.
     """
 
-    def __init__(self):
+    def __init__(self, model_registry=None):
         """
         Initialize the BMI predictor.
 
         Args:
-            models_dir (str): Directory to save trained models
+            model_registry: Optional ModelRegistry instance. Creates default one if None.
         """
 
+        self.registry = model_registry if model_registry else ModelRegistry()
         self.models = {
-            'ElasticNet': ElasticNet(),
-            'SVR': SVR(),
-            'BayesianRidge': BayesianRidge()
+            name: self.registry.get_model(name)
+            for name in self.registry.available_models
         }
 
     def fit(self, X_train, y_train):
@@ -129,7 +129,7 @@ class ModelTuner:
     Handles hyperparameter tuning for BMI prediction models using selected features.
     """
 
-    def __init__(self, scoring_metric='neg_root_mean_squared_error', cv=5):
+    def __init__(self, scoring_metric='neg_root_mean_squared_error', cv=5, model_registry=None):
         """
         Args:
             scoring_metric: The scoring metric to use for evaluation (default: 'neg_root_mean_squared_error')
@@ -157,6 +157,12 @@ class ModelTuner:
             }
         }
 
+        self.registry = model_registry if model_registry else ModelRegistry()
+        self.models = {
+            name: self.registry.get_model(name)
+            for name in self.registry.available_models
+        }
+
         self.best_params_ = {}
         self.best_scores_ = {}
 
@@ -175,14 +181,7 @@ class ModelTuner:
             Trained model with best parameters
         """
 
-        if model == 'ElasticNet':
-            model = ElasticNet()
-        elif model == 'SVR':
-            model = SVR()
-        elif model == 'BayesianRidge':
-            model = BayesianRidge()
-        else:
-            raise ValueError(f"Unknown model type: {model}")
+        model = self.models[model]
 
         search = RandomizedSearchCV(
             estimator=model,
@@ -201,6 +200,41 @@ class ModelTuner:
         self.best_scores_[model] = -search.best_score_
 
         return search.best_estimator_
+
+
+class ModelRegistry:
+    """
+    Central registry for model definitions.
+    """
+
+    def __init__(self):
+        self._models = {
+            'ElasticNet': ElasticNet(),
+            'SVR': SVR(),
+            'BayesianRidge': BayesianRidge()
+        }
+
+    @property
+    def available_models(self):
+        """Return list of registered model names."""
+        return list(self._models.keys())
+
+    def get_model(self, model_name):
+        """
+        Get a model instance.
+
+        Args:
+            model_name: Name of the model to retrieve
+
+        Returns:
+            Model instance (new instance each call)
+        """
+        if model_name not in self._models:
+            raise ValueError(
+                f"Unknown model: {model_name}. Available: {self.available_models}")
+
+        model = self._models[model_name]
+        return model
 
 
 class ModelIO:

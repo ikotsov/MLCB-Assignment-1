@@ -8,6 +8,7 @@ from sklearn.linear_model import ElasticNet, BayesianRidge
 from sklearn.svm import SVR
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.utils import resample
+from sklearn.model_selection import RandomizedSearchCV
 
 
 class BMIPredictor:
@@ -121,6 +122,85 @@ class ModelEvaluator:
         report_df = report_df.round(3)
 
         return report_df[['mean', 'std', 'median', 'CI_low', 'CI_high']]
+
+
+class ModelTuner:
+    """
+    Handles hyperparameter tuning for BMI prediction models using selected features.
+    """
+
+    def __init__(self, scoring_metric='neg_root_mean_squared_error', cv=5):
+        """
+        Args:
+            scoring_metric: The scoring metric to use for evaluation (default: 'neg_root_mean_squared_error')
+            cv: Number of cross-validation folds
+        """
+        self.scoring_metric = scoring_metric
+        self.cv = cv
+
+        # Define hyperparameter grids for each model
+        self.param_grids = {
+            'ElasticNet': {
+                'alpha': [0.1, 0.5, 1.0, 2.0],
+                'l1_ratio': [0.1, 0.3, 0.5, 0.7, 0.9]  # L1 vs L2 mix
+            },
+            'SVR': {
+                'C': [0.1, 1, 10, 100],
+                'epsilon': [0.01, 0.1, 0.5],
+                'kernel': ['linear', 'rbf']
+            },
+            'BayesianRidge': {
+                'alpha_1': [1e-6, 1e-5, 1e-4],
+                'alpha_2': [1e-6, 1e-5, 1e-4],
+                'lambda_1': [1e-6, 1e-5, 1e-4],
+                'lambda_2': [1e-6, 1e-5, 1e-4]
+            }
+        }
+
+        self.best_params_ = {}
+        self.best_scores_ = {}
+
+    def tune(self, model, X_train, y_train, n_iterations=50, random_state=42):
+        """
+        Perform hyperparameter tuning using randomized search.
+
+        Args:
+            model: One of ['ElasticNet', 'SVR', 'BayesianRidge']
+            X_train: Training features
+            y_train: Target values
+            n_iterations: Number of parameter combinations to try
+            random_state: Random seed
+
+        Returns:
+            Trained model with best parameters
+        """
+
+        if model == 'ElasticNet':
+            model = ElasticNet()
+        elif model == 'SVR':
+            model = SVR()
+        elif model == 'BayesianRidge':
+            model = BayesianRidge()
+        else:
+            raise ValueError(f"Unknown model type: {model}")
+
+        search = RandomizedSearchCV(
+            estimator=model,
+            param_distributions=self.param_grids[model],
+            n_iter=n_iterations,
+            cv=self.cv,
+            scoring=self.scoring_metric,
+            random_state=random_state,
+            n_jobs=-1  # Use all processors
+        )
+
+        search.fit(X_train, y_train)
+
+        self.best_params_[model] = search.best_params_
+        # Convert back to positive RMSE
+        self.best_scores_[model] = -search.best_score_
+
+        return search.best_estimator_
 
 
 class ModelIO:

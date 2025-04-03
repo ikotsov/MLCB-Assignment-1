@@ -24,12 +24,7 @@ class BMIPredictor:
         Args:
             model_registry: Optional ModelRegistry instance. Creates default one if None.
         """
-
         self.registry = model_registry if model_registry else ModelRegistry()
-        self.models = {
-            name: self.registry.get_model(name)
-            for name in self.registry.available_models
-        }
 
     def fit(self, X_train, y_train):
         """
@@ -44,7 +39,8 @@ class BMIPredictor:
         """
 
         trained_models = {}
-        for model_name, model in self.models.items():
+        for model_name, model in self.registry.available_models:
+            model = self.registry.get_model(model_name)
             model.fit(X_train, y_train)
             trained_models[model_name] = model
 
@@ -135,6 +131,7 @@ class ModelTuner:
             scoring_metric: The scoring metric to use for evaluation (default: 'neg_root_mean_squared_error')
             cv: Number of cross-validation folds
         """
+        self.registry = model_registry if model_registry else ModelRegistry()
         self.scoring_metric = scoring_metric
         self.cv = cv
 
@@ -157,21 +154,15 @@ class ModelTuner:
             }
         }
 
-        self.registry = model_registry if model_registry else ModelRegistry()
-        self.models = {
-            name: self.registry.get_model(name)
-            for name in self.registry.available_models
-        }
-
         self.best_params_ = {}
         self.best_scores_ = {}
 
-    def tune(self, model, X_train, y_train, n_iterations=50, random_state=42):
+    def tune(self, model_name, X_train, y_train, n_iterations=50, random_state=42):
         """
         Perform hyperparameter tuning using randomized search.
 
         Args:
-            model: One of ['ElasticNet', 'SVR', 'BayesianRidge']
+            model_name: One of ['ElasticNet', 'SVR', 'BayesianRidge']
             X_train: Training features
             y_train: Target values
             n_iterations: Number of parameter combinations to try
@@ -180,12 +171,11 @@ class ModelTuner:
         Returns:
             Trained model with best parameters
         """
-
-        model = self.models[model]
+        model = self.registry.get_model(model_name)
 
         search = RandomizedSearchCV(
             estimator=model,
-            param_distributions=self.param_grids[model],
+            param_distributions=self.param_grids[model_name],
             n_iter=n_iterations,
             cv=self.cv,
             scoring=self.scoring_metric,
@@ -195,9 +185,9 @@ class ModelTuner:
 
         search.fit(X_train, y_train)
 
-        self.best_params_[model] = search.best_params_
-        # Convert back to positive RMSE
-        self.best_scores_[model] = -search.best_score_
+        self.best_params_[model_name] = search.best_params_
+        self.best_scores_[model_name] = - \
+            search.best_score_  # Convert to positive RMSE
 
         return search.best_estimator_
 
@@ -208,16 +198,16 @@ class ModelRegistry:
     """
 
     def __init__(self):
-        self._models = {
-            'ElasticNet': ElasticNet(),
-            'SVR': SVR(),
-            'BayesianRidge': BayesianRidge()
+        self._model_classes = {
+            'ElasticNet': ElasticNet,
+            'SVR': SVR,
+            'BayesianRidge': BayesianRidge
         }
 
     @property
     def available_models(self):
         """Return list of registered model names."""
-        return list(self._models.keys())
+        return list(self._model_classes.keys())
 
     def get_model(self, model_name):
         """
@@ -229,12 +219,11 @@ class ModelRegistry:
         Returns:
             Model instance (new instance each call)
         """
-        if model_name not in self._models:
+        if model_name not in self._model_classes:
             raise ValueError(
                 f"Unknown model: {model_name}. Available: {self.available_models}")
 
-        model = self._models[model_name]
-        return model
+        return self._model_classes[model_name]()
 
 
 class ModelIO:

@@ -77,8 +77,8 @@ class ModelEvaluator:
             random_state: Reproducibility seed
         """
         np.random.seed(random_state)
-        for _ in range(n_iterations):
-            X_bs, y_bs = resample(X, y)
+        for i in range(n_iterations):
+            X_bs, y_bs = resample(X, y, random_state=i)
             y_pred = self.model.predict(X_bs)
 
             self.metrics['RMSE'].append(root_mean_squared_error(y_bs, y_pred))

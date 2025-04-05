@@ -8,7 +8,7 @@ from sklearn.linear_model import ElasticNet, BayesianRidge
 from sklearn.svm import SVR
 from sklearn.metrics import root_mean_squared_error, mean_absolute_error, r2_score
 from sklearn.utils import resample
-from sklearn.model_selection import RandomizedSearchCV
+from sklearn.model_selection import GridSearchCV
 
 
 class BMIPredictor:
@@ -143,7 +143,9 @@ class ModelTuner:
             'SVR': {
                 'C': [0.1, 1, 10, 100],
                 'epsilon': [0.01, 0.1, 0.5],
-                'kernel': ['linear', 'rbf']
+                'kernel': ['linear', 'rbf', 'poly'],
+                'gamma': ['scale', 'auto'],
+                'degree': [2, 3]  # Only for 'poly'
             },
             'BayesianRidge': {
                 'alpha_1': [1e-6, 1e-5, 1e-4],
@@ -172,13 +174,11 @@ class ModelTuner:
         """
         model = self.registry.get_model(model_name)
 
-        search = RandomizedSearchCV(
+        search = GridSearchCV(
             estimator=model,
-            param_distributions=self.param_grids[model_name],
-            n_iter=n_iterations,
+            param_grid=self.param_grids[model_name],
             cv=self.cv,
             scoring=self.scoring_metric,
-            random_state=random_state,
             n_jobs=-1  # Use all processors
         )
 

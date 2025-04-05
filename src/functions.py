@@ -39,7 +39,7 @@ class BMIPredictor:
         """
 
         trained_models = {}
-        for model_name, model in self.registry.available_models:
+        for model_name in self.registry.available_models:
             model = self.registry.get_model(model_name)
             model.fit(X_train, y_train)
             trained_models[model_name] = model

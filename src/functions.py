@@ -81,7 +81,8 @@ class ModelEvaluator:
             X_train, y_train = resample(X, y, random_state=i)
             y_pred = self.model.predict(X_train)
 
-            self.metrics['RMSE'].append(root_mean_squared_error(y_train, y_pred))
+            self.metrics['RMSE'].append(
+                root_mean_squared_error(y_train, y_pred))
             self.metrics['MAE'].append(mean_absolute_error(y_train, y_pred))
             self.metrics['R2'].append(r2_score(y_train, y_pred))
 

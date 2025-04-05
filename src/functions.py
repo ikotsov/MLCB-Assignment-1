@@ -74,7 +74,6 @@ class ModelEvaluator:
             X: Evaluation features
             y: True labels
             n_iterations: Bootstrap samples (200-1000 recommended)
-            ci: Confidence interval width (default 95%)
             random_state: Reproducibility seed
         """
         np.random.seed(random_state)

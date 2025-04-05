@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.linear_model import ElasticNet, BayesianRidge
 from sklearn.svm import SVR
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from sklearn.metrics import root_mean_squared_error, mean_absolute_error, r2_score
 from sklearn.utils import resample
 from sklearn.model_selection import RandomizedSearchCV
 
@@ -81,8 +81,7 @@ class ModelEvaluator:
             X_bs, y_bs = resample(X, y)
             y_pred = self.model.predict(X_bs)
 
-            self.metrics['RMSE'].append(
-                np.sqrt(mean_squared_error(y_bs, y_pred)))
+            self.metrics['RMSE'].append(root_mean_squared_error(y_bs, y_pred))
             self.metrics['MAE'].append(mean_absolute_error(y_bs, y_pred))
             self.metrics['R2'].append(r2_score(y_bs, y_pred))
 

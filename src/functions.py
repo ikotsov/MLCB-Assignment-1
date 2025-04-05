@@ -78,13 +78,13 @@ class ModelEvaluator:
         """
         np.random.seed(random_state)
         for i in range(n_iterations):
-            X_train, y_train = resample(X, y, random_state=i)
-            y_pred = self.model.predict(X_train)
+            X_bs, y_bs = resample(X, y, random_state=i)
+            y_pred = self.model.predict(X_bs)
 
             self.metrics['RMSE'].append(
-                root_mean_squared_error(y_train, y_pred))
-            self.metrics['MAE'].append(mean_absolute_error(y_train, y_pred))
-            self.metrics['R2'].append(r2_score(y_train, y_pred))
+                root_mean_squared_error(y_bs, y_pred))
+            self.metrics['MAE'].append(mean_absolute_error(y_bs, y_pred))
+            self.metrics['R2'].append(r2_score(y_bs, y_pred))
 
         self.stats = self.__compute_statistics()
 

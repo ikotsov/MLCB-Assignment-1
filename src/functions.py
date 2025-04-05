@@ -158,7 +158,7 @@ class ModelTuner:
         self.best_params_ = {}
         self.best_scores_ = {}
 
-    def tune(self, model_name, X_train, y_train, n_iterations=50, random_state=42):
+    def tune(self, model_name, X_train, y_train):
         """
         Perform hyperparameter tuning using randomized search.
 
@@ -166,8 +166,6 @@ class ModelTuner:
             model_name: One of ['ElasticNet', 'SVR', 'BayesianRidge']
             X_train: Training features
             y_train: Target values
-            n_iterations: Number of parameter combinations to try
-            random_state: Random seed
 
         Returns:
             Trained model with best parameters

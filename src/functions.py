@@ -1,3 +1,5 @@
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.preprocessing import StandardScaler
 from pathlib import Path
 import joblib
 import os
@@ -9,6 +11,7 @@ from sklearn.svm import SVR
 from sklearn.metrics import root_mean_squared_error, mean_absolute_error, r2_score
 from sklearn.utils import resample
 from sklearn.model_selection import GridSearchCV
+from sklearn.pipeline import Pipeline
 
 
 class BMIPredictor:
@@ -189,6 +192,46 @@ class ModelTuner:
         return search.best_estimator_
 
 
+class Preprocessor(BaseEstimator, TransformerMixin):
+    """Handles all custom preprocessing steps"""
+
+    def __init__(self):
+        # No parameters needed - columns are determined in fit()
+        pass
+    # Keep y even if not used, for compatibility
+
+    def fit(self, X, y=None):
+        # Auto-detect columns to drop (metadata)
+        self.cols_to_drop_ = [
+            'Project ID', 'Experiment type',
+            'Sex', 'Host age', 'Disease MESH ID'
+        ]
+
+        # Auto-detect columns to scale (all numeric except BMI and metadata)
+        numeric_cols = X.select_dtypes(include=np.number).columns
+        self.cols_to_scale_ = [
+            col for col in numeric_cols
+            if col not in self.cols_to_drop_ + ['BMI']
+        ]
+
+        # Initialize and fit scaler
+        self.scaler = StandardScaler().fit(X[self.cols_to_scale_])
+        return self
+
+    def transform(self, X):
+        # Make a copy to avoid SettingWithCopyWarning
+        X = X.copy()
+
+        # Drop metadata columns
+        X = X.drop(
+            columns=[col for col in self.cols_to_drop_ if col in X.columns])
+
+        # Scale numeric columns
+        X[self.cols_to_scale_] = self.scaler.transform(X[self.cols_to_scale_])
+
+        return X
+
+
 class ModelRegistry:
     """
     Central registry for model definitions.
@@ -335,3 +378,16 @@ def compare_model_metrics(*evaluators, figsize=(18, 6)):
 
     plt.tight_layout()
     plt.show()
+
+
+def create_winner_pipeline():
+    """Builds the final production-ready pipeline"""
+    return Pipeline([
+        ('preprocessor', Preprocessor()),
+        ('model', BayesianRidge(
+            alpha_1=1e-06,
+            alpha_2=0.0001,
+            lambda_1=0.0001,
+            lambda_2=1e-06
+        ))
+    ])

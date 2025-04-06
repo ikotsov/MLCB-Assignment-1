@@ -76,7 +76,7 @@ class ModelEvaluator:
         Args:
             X: Evaluation features
             y: True labels
-            n_iterations: Bootstrap samples (200-1000 recommended)
+            n_iterations: Bootstrap samples (default: 500)
             random_state: Reproducibility seed
         """
         np.random.seed(random_state)
@@ -92,7 +92,7 @@ class ModelEvaluator:
         self.stats = self.__compute_statistics()
 
     def __compute_statistics(self):
-        """Calculate and store statistics."""
+        """Calculate statistics."""
         ci_low = (100 - self.ci) / 2
         return {
             metric: {
@@ -132,6 +132,7 @@ class ModelTuner:
         Args:
             scoring_metric: The scoring metric to use for evaluation (default: 'neg_root_mean_squared_error')
             cv: Number of cross-validation folds
+            model_registry: Optional ModelRegistry instance. Creates default one if None.
         """
         self.registry = model_registry if model_registry else ModelRegistry()
         self.scoring_metric = scoring_metric
@@ -163,7 +164,7 @@ class ModelTuner:
 
     def tune(self, model_name, X_train, y_train):
         """
-        Perform hyperparameter tuning using randomized search.
+        Perform hyperparameter tuning using grid search.
 
         Args:
             model_name: One of ['ElasticNet', 'SVR', 'BayesianRidge']
@@ -198,8 +199,8 @@ class Preprocessor(BaseEstimator, TransformerMixin):
     def __init__(self):
         # No parameters needed - columns are determined in fit()
         pass
-    # Keep y even if not used, for compatibility
 
+    # Keep y even if not used, for compatibility
     def fit(self, X, y=None):
         # Auto-detect columns to drop (metadata)
         self.cols_to_drop_ = [
@@ -291,7 +292,7 @@ class ModelIO:
         Args:
             model: Trained model object
             model_name (str): Name of the model (e.g., 'ElasticNet')
-            suffix (str): Optional suffix for filename (e.g., 'baseline', 'tuned')
+            suffix (str): Optional suffix for filename (e.g., 'baseline', 'optimal')
         """
         filename = self.__generate_filename(model_name, suffix)
         joblib.dump(model, filename)

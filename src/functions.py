@@ -227,6 +227,10 @@ class Preprocessor(BaseEstimator, TransformerMixin):
         X = X.drop(
             columns=[col for col in self.cols_to_drop_ if col in X.columns])
 
+        # Round BMI if column exists
+        if 'BMI' in X.columns:
+            X['BMI'] = X['BMI'].round(1)
+
         # Scale numeric columns
         X[self.cols_to_scale_] = self.scaler.transform(X[self.cols_to_scale_])
 

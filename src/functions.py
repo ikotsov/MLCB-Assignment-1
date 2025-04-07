@@ -237,6 +237,19 @@ class Preprocessor(BaseEstimator, TransformerMixin):
         return X
 
 
+class ColumnSelector(BaseEstimator, TransformerMixin):
+    """Selects only specified columns."""
+
+    def __init__(self, columns):
+        self.columns = columns
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        return X[self.columns]  # Explicitly filter columns
+
+
 class ModelRegistry:
     """
     Central registry for model definitions.
@@ -385,10 +398,11 @@ def compare_model_metrics(*evaluators, figsize=(18, 6)):
     plt.show()
 
 
-def create_winner_pipeline():
+def create_winner_pipeline(selected_features):
     """Builds the final production-ready pipeline"""
     return Pipeline([
         ('preprocessor', Preprocessor()),
+        ('feature_selector', ColumnSelector(selected_features)),
         ('model', BayesianRidge(
             alpha_1=1e-06,
             alpha_2=0.0001,
